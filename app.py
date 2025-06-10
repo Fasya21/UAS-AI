@@ -7,14 +7,13 @@ import tempfile
 from pathlib import Path
 from ultralytics import YOLO
 import subprocess
-# Hapus import huggingface_hub karena tidak digunakan lagi
 
 # --- PENGATURAN HALAMAN & MODEL ---
 
 # Mengatur judul halaman dan ikon yang akan muncul di tab browser
 st.set_page_config(
     page_title="Deteksi APD dengan YOLOv8",
-    page_icon="�",
+    page_icon="👷",
     layout="wide"
 )
 
@@ -26,11 +25,8 @@ def load_model():
     Menggunakan cache Streamlit agar model hanya diunduh dan dimuat sekali per sesi.
     """
     model_path = "best.pt"
-    # ========= PERUBAHAN UTAMA DI SINI =========
-    # Menggunakan metode unduh dengan wget sesuai permintaan
     # URL yang digunakan adalah URL yang valid agar aplikasi bisa berjalan
     model_url = "https://huggingface.co/jancodr/YOLOv8-Hardhat-Detection/resolve/main/best.pt"
-    # ============================================
     
     if not os.path.exists(model_path):
         st.info(f"Mengunduh model dengan wget dari URL yang valid...")
@@ -171,4 +167,3 @@ if uploaded_file is not None:
 
 else:
     st.info("Silakan unggah file video melalui panel di sebelah kiri untuk memulai.")
-�
