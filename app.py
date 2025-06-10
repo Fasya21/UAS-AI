@@ -8,12 +8,13 @@ from pathlib import Path
 from ultralytics import YOLO
 import subprocess
 from huggingface_hub import hf_hub_download
+import shutil
 
 # --- PENGATURAN HALAMAN & MODEL ---
 
 st.set_page_config(
     page_title="Deteksi APD dengan YOLOv8",
-    page_icon="👷",
+    page_icon="�",
     layout="wide"
 )
 
@@ -68,18 +69,18 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 if uploaded_file is not None:
-    # Simpan file yang diunggah ke file sementara
-    with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tfile:
-        tfile.write(uploaded_file.read())
-        uploaded_video_path = tfile.name
+    # Buat direktori sementara untuk semua operasi
+    temp_dir_main = tempfile.mkdtemp()
+    uploaded_video_path = os.path.join(temp_dir_main, uploaded_file.name)
+    converted_video_path = os.path.join(temp_dir_main, "converted.mp4")
 
-    # Path untuk video yang dikonversi
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as converted_tfile:
-        converted_video_path = converted_tfile.name
+    # Tulis file yang diunggah ke path sementara
+    with open(uploaded_video_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
     st.sidebar.info(f"Video yang diunggah: **{uploaded_file.name}**")
     
-    # ===== LANGKAH BARU: KONVERSI VIDEO UNTUK KOMPATIBILITAS WEB =====
+    # ===== LANGKAH KONVERSI VIDEO YANG DIPERBAIKI =====
     try:
         with st.spinner("Mengonversi video agar kompatibel dengan web..."):
             ffmpeg_command = [
@@ -89,25 +90,29 @@ if uploaded_file is not None:
                 "-pix_fmt", "yuv420p", "-y", converted_video_path
             ]
             process = subprocess.run(ffmpeg_command, check=True, capture_output=True, text=True)
-        st.success("Video berhasil dikonversi.")
         
-        # Tampilkan video yang sudah dikonversi
-        st.video(converted_video_path)
-        
-        # Tombol untuk memulai proses deteksi
-        if st.button("Mulai Deteksi pada Video Ini"):
-            # Proses deteksi sekarang menggunakan video yang sudah dikonversi
-            video_path = converted_video_path 
+        # Periksa apakah video hasil konversi ada dan tidak kosong
+        if os.path.exists(converted_video_path) and os.path.getsize(converted_video_path) > 0:
+            st.success("Video berhasil dikonversi.")
             
-            if model is None:
-                st.error("Model tidak berhasil dimuat. Tidak dapat melanjutkan proses deteksi.")
-            else:
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    frames_dir = Path(temp_dir) / "frames"
-                    detected_frames_dir = Path(temp_dir) / "frames_detected"
+            # ===== TAMPILKAN VIDEO DARI DATA BYTES (LEBIH ANDAL) =====
+            with open(converted_video_path, 'rb') as video_file:
+                video_bytes = video_file.read()
+            st.video(video_bytes)
+            
+            # Tombol untuk memulai proses deteksi
+            if st.button("Mulai Deteksi pada Video Ini"):
+                video_path = converted_video_path 
+                
+                if model is None:
+                    st.error("Model tidak berhasil dimuat. Tidak dapat melanjutkan proses deteksi.")
+                else:
+                    # Buat sub-direktori di dalam direktori sementara utama
+                    frames_dir = Path(temp_dir_main) / "frames"
+                    detected_frames_dir = Path(temp_dir_main) / "frames_detected"
                     frames_dir.mkdir()
                     detected_frames_dir.mkdir()
-                    output_video_path = os.path.join(temp_dir, "video_detected.mp4")
+                    output_video_path = os.path.join(temp_dir_main, "video_detected.mp4")
 
                     with st.spinner("Sedang memproses video... Harap tunggu."):
                         cap = cv2.VideoCapture(video_path)
@@ -149,15 +154,19 @@ if uploaded_file is not None:
                             subprocess.run(reconstruct_command, check=True, capture_output=True, text=True)
                             st.success("Video hasil deteksi berhasil dibuat!")
                             st.header("Hasil Deteksi")
-                            st.video(output_video_path)
-                            with open(output_video_path, "rb") as file:
-                                st.download_button(
-                                    label="Unduh Video Hasil Deteksi", data=file,
-                                    file_name=f"hasil_deteksi_{uploaded_file.name}", mime="video/mp4"
-                                )
+                            with open(output_video_path, 'rb') as result_video_file:
+                                result_video_bytes = result_video_file.read()
+                            st.video(result_video_bytes)
+                            
+                            st.download_button(
+                                label="Unduh Video Hasil Deteksi", data=result_video_bytes,
+                                file_name=f"hasil_deteksi_{uploaded_file.name}", mime="video/mp4"
+                            )
                         except subprocess.CalledProcessError as e:
                             st.error("Gagal membuat video hasil deteksi. Pesan error:")
                             st.code(e.stderr, language='bash')
+        else:
+            st.error("Konversi video gagal. File output tidak dibuat atau kosong.")
 
     except subprocess.CalledProcessError as e:
         st.error("Gagal mengonversi video. Format video mungkin tidak didukung atau file rusak.")
@@ -165,11 +174,10 @@ if uploaded_file is not None:
     except FileNotFoundError:
         st.error("Perintah 'ffmpeg' tidak ditemukan. Pastikan FFMPEG terinstall di lingkungan Anda.")
     finally:
-        # Selalu hapus file sementara
-        if os.path.exists(uploaded_video_path):
-            os.unlink(uploaded_video_path)
-        if os.path.exists(converted_video_path):
-            os.unlink(converted_video_path)
+        # Selalu hapus direktori sementara dan isinya
+        if os.path.exists(temp_dir_main):
+            shutil.rmtree(temp_dir_main)
 
 else:
     st.info("Silakan unggah file video melalui panel di sebelah kiri untuk memulai.")
+�
