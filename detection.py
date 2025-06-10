@@ -15,10 +15,23 @@ def split_video(video_path):
 def detect_on_frames(frames):
     model = load_model()
     detected_frames = []
-    for frame in frames:
+
+    # Ambil 30 frame dari tengah video
+    total_frames = len(frames)
+    if total_frames > 30:
+        start = (total_frames - 30) // 2
+        frames = frames[start:start+30]
+
+    st.info(f"Proses deteksi dimulai pada {len(frames)} frame...")
+    progress = st.progress(0)
+    
+    for i, frame in enumerate(frames):
         results = model(frame)
-        annotated_frame = results[0].plot()  # ✅ cukup langsung .plot()
+        annotated_frame = results[0].plot()
         detected_frames.append(annotated_frame)
+        progress.progress((i + 1) / len(frames))
+
+    st.success("Deteksi selesai!")
     return detected_frames
 
 def combine_frames_to_video(frames, output_path, fps=30):
