@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 from ultralytics import YOLO
 import subprocess
+from huggingface_hub import hf_hub_download # <-- Menggunakan library yang tepat
 
 # --- PENGATURAN HALAMAN & MODEL ---
 
@@ -21,28 +22,28 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     """
-    Mengunduh model YOLOv8 menggunakan wget dan memuatnya.
-    Menggunakan cache Streamlit agar model hanya diunduh dan dimuat sekali per sesi.
+    Mengunduh model YOLOv8 dari Hugging Face Hub dan memuatnya.
+    Ini adalah cara yang paling andal karena tidak memerlukan 'wget'.
     """
     model_path = "best.pt"
-    # URL yang digunakan adalah URL yang valid agar aplikasi bisa berjalan
-    model_url = "https://huggingface.co/keremberke/yolov8m-hard-hat-detection/resolve/main/best.pt"
+    # ========= MENGGUNAKAN REPO SESUAI PERMINTAAN PENGGUNA =========
+    repo_id = "keremberke/yolov8m-hard-hat-detection"
+    filename = "best.pt"
+    # =============================================================
     
     if not os.path.exists(model_path):
-        st.info(f"Mengunduh model dengan wget dari URL yang valid...")
+        st.info(f"Mengunduh model '{filename}' dari repo '{repo_id}' sesuai permintaan...")
         try:
-            # Membangun dan menjalankan perintah wget melalui subprocess
-            command = ["wget", "-O", model_path, model_url]
-            subprocess.run(command, check=True, capture_output=True, text=True)
+            # Menggunakan fungsi hf_hub_download yang dirancang untuk ini
+            hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                local_dir='.',
+                local_dir_use_symlinks=False
+            )
             st.success("Model berhasil diunduh.")
-        except FileNotFoundError:
-            st.error("Perintah 'wget' tidak ditemukan. Metode ini mungkin tidak berfungsi di semua lingkungan. Pastikan wget terinstall.")
-            return None
-        except subprocess.CalledProcessError as e:
-            st.error(f"Gagal mengunduh model dengan wget. URL mungkin tidak valid atau ada masalah jaringan. Error: {e.stderr}")
-            return None
         except Exception as e:
-            st.error(f"Terjadi kesalahan tak terduga saat mengunduh: {e}")
+            st.error(f"Gagal mengunduh model: {e}")
             return None
             
     # Memuat model YOLO dari file yang sudah diunduh
@@ -95,10 +96,11 @@ if uploaded_file is not None:
                 with st.spinner("Sedang memproses video... Harap tunggu."):
                     # --- LANGKAH 1: EKSTRAKSI FRAME DARI VIDEO ---
                     cap = cv2.VideoCapture(video_path)
-                    total_frames = int(cap.get(cv2.CAP_PROP_FPS) * 30) # Proses maks 30 detik pertama
+                    # Proses maks 30 detik pertama untuk demo cepat
+                    total_frames_to_process = int(cap.get(cv2.CAP_PROP_FPS) * 30) 
                     frame_count = 0
                     st.info("Langkah 1/3: Mengekstrak frame dari video...")
-                    while cap.isOpened() and frame_count < total_frames:
+                    while cap.isOpened() and frame_count < total_frames_to_process:
                         success, frame = cap.read()
                         if not success:
                             break
