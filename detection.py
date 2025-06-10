@@ -17,7 +17,7 @@ def detect_on_frames(frames):
     detected_frames = []
     for frame in frames:
         results = model(frame)
-        annotated_frame = results.plot()  # ✅ Perbaikan
+        annotated_frame = results.plot()  # ✅ cukup langsung .plot()
         detected_frames.append(annotated_frame)
     return detected_frames
 
