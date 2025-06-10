@@ -2,7 +2,6 @@ import cv2
 from model import load_model
 
 def split_video(video_path):
-    # Baca video, split jadi list frame (np.array)
     cap = cv2.VideoCapture(video_path)
     frames = []
     while True:
@@ -18,7 +17,7 @@ def detect_on_frames(frames):
     detected_frames = []
     for frame in frames:
         results = model(frame)
-        annotated_frame = results[0].plot()
+        annotated_frame = results.plot()  # ✅ Perbaikan
         detected_frames.append(annotated_frame)
     return detected_frames
 
