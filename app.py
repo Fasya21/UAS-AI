@@ -6,8 +6,8 @@ import os
 import tempfile
 from pathlib import Path
 from ultralytics import YOLO
-import requests
 import subprocess
+from huggingface_hub import hf_hub_download # <-- Perubahan: Import baru
 
 # --- PENGATURAN HALAMAN & MODEL ---
 
@@ -22,22 +22,28 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     """
-    Mengunduh model YOLOv8 dari URL dan memuatnya.
+    Mengunduh model YOLOv8 dari Hugging Face Hub dan memuatnya.
     Menggunakan cache Streamlit agar model hanya diunduh dan dimuat sekali per sesi.
     """
     model_path = "best.pt"
-    model_url = "https://huggingface.co/jancodr/YOLOv8-Hardhat-Detection/resolve/main/best.pt"
+    # ========= PERUBAHAN UTAMA DI SINI =========
+    # Menggunakan metode unduh dari huggingface_hub
+    repo_id = "jancodr/YOLOv8-Hardhat-Detection"
+    filename = "best.pt"
+    # ============================================
     
     if not os.path.exists(model_path):
-        st.info(f"Mengunduh model dari {model_url}...")
+        st.info(f"Mengunduh model '{filename}' dari repo '{repo_id}'...")
         try:
-            response = requests.get(model_url, stream=True)
-            response.raise_for_status()
-            with open(model_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            # Menggunakan fungsi hf_hub_download yang lebih andal
+            hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                local_dir='.', # Unduh ke direktori saat ini
+                local_dir_use_symlinks=False # Hindari symlink untuk kompatibilitas
+            )
             st.success("Model berhasil diunduh.")
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             st.error(f"Gagal mengunduh model: {e}")
             return None
             
