@@ -26,7 +26,7 @@ def load_model():
     """
     model_path = "best.pt"
     # URL yang digunakan adalah URL yang valid agar aplikasi bisa berjalan
-    model_url = "https://huggingface.co/jancodr/YOLOv8-Hardhat-Detection/resolve/main/best.pt"
+    model_url = https://huggingface.co/keremberke/yolov8m-hard-hat-detection/resolve/main/best.pt
     
     if not os.path.exists(model_path):
         st.info(f"Mengunduh model dengan wget dari URL yang valid...")
