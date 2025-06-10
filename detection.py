@@ -17,9 +17,9 @@ def detect_on_frames(frames):
     model = load_model()
     detected_frames = []
     for frame in frames:
-        # proses deteksi pake model
-        detected_frame = model.detect(frame)  # Contoh
-        detected_frames.append(detected_frame)
+        results = model(frame)
+        annotated_frame = results[0].plot()
+        detected_frames.append(annotated_frame)
     return detected_frames
 
 def combine_frames_to_video(frames, output_path, fps=30):
