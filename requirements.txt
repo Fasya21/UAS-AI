@@ -1,5 +1,6 @@
 streamlit
 ultralytics
-opencv-python-headless
 requests
 huggingface-hub
+opencv-python
+numpy
