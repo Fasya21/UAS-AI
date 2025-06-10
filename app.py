@@ -7,14 +7,14 @@ import tempfile
 from pathlib import Path
 from ultralytics import YOLO
 import subprocess
-from huggingface_hub import hf_hub_download # <-- Perubahan: Import baru
+# Hapus import huggingface_hub karena tidak digunakan lagi
 
 # --- PENGATURAN HALAMAN & MODEL ---
 
 # Mengatur judul halaman dan ikon yang akan muncul di tab browser
 st.set_page_config(
     page_title="Deteksi APD dengan YOLOv8",
-    page_icon="👷",
+    page_icon="�",
     layout="wide"
 )
 
@@ -22,29 +22,31 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     """
-    Mengunduh model YOLOv8 dari Hugging Face Hub dan memuatnya.
+    Mengunduh model YOLOv8 menggunakan wget dan memuatnya.
     Menggunakan cache Streamlit agar model hanya diunduh dan dimuat sekali per sesi.
     """
     model_path = "best.pt"
     # ========= PERUBAHAN UTAMA DI SINI =========
-    # Menggunakan metode unduh dari huggingface_hub
-    repo_id = "jancodr/YOLOv8-Hardhat-Detection"
-    filename = "best.pt"
+    # Menggunakan metode unduh dengan wget sesuai permintaan
+    # URL yang digunakan adalah URL yang valid agar aplikasi bisa berjalan
+    model_url = "https://huggingface.co/jancodr/YOLOv8-Hardhat-Detection/resolve/main/best.pt"
     # ============================================
     
     if not os.path.exists(model_path):
-        st.info(f"Mengunduh model '{filename}' dari repo '{repo_id}'...")
+        st.info(f"Mengunduh model dengan wget dari URL yang valid...")
         try:
-            # Menggunakan fungsi hf_hub_download yang lebih andal
-            hf_hub_download(
-                repo_id=repo_id,
-                filename=filename,
-                local_dir='.', # Unduh ke direktori saat ini
-                local_dir_use_symlinks=False # Hindari symlink untuk kompatibilitas
-            )
+            # Membangun dan menjalankan perintah wget melalui subprocess
+            command = ["wget", "-O", model_path, model_url]
+            subprocess.run(command, check=True, capture_output=True, text=True)
             st.success("Model berhasil diunduh.")
+        except FileNotFoundError:
+            st.error("Perintah 'wget' tidak ditemukan. Metode ini mungkin tidak berfungsi di semua lingkungan. Pastikan wget terinstall.")
+            return None
+        except subprocess.CalledProcessError as e:
+            st.error(f"Gagal mengunduh model dengan wget. URL mungkin tidak valid atau ada masalah jaringan. Error: {e.stderr}")
+            return None
         except Exception as e:
-            st.error(f"Gagal mengunduh model: {e}")
+            st.error(f"Terjadi kesalahan tak terduga saat mengunduh: {e}")
             return None
             
     # Memuat model YOLO dari file yang sudah diunduh
@@ -169,3 +171,4 @@ if uploaded_file is not None:
 
 else:
     st.info("Silakan unggah file video melalui panel di sebelah kiri untuk memulai.")
+�
